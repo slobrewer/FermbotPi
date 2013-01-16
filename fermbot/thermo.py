@@ -52,7 +52,7 @@ class Thermometer(object):
     
     # Temperature in Celcius property: provides the current temperature in
     # degrees Celcius by querying the 1-wire bus files.  Precision is to the
-    # 1000th of a degree but accuracy is only to +/-0.5 C.
+    # 1000th of a degree but accuracy is only to +/-0.5 C.  Typed as a Decimal
     @property
     def temp_c(self):
         with open(self.bus_master_path + self.serial +
@@ -73,7 +73,7 @@ class Thermometer(object):
     
     # Temperature in Fahrenheit property: provides the current temperature in
     # degrees Farenheit by querying the 1-wire bus files.  Precision is to the
-    # 1000th of a degree but accuracy is only to +/-0.5 C.
+    # 1000th of a degree but accuracy is only to +/-0.5 C.  Typed as a Decimal
     @property
     def temp_f(self):
         return ((self.temp_c * Decimal(9) / Decimal(5)) +
