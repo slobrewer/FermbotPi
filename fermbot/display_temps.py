@@ -12,9 +12,16 @@ else:
 def main():
     while True:
         for thermometer in thermo.get_thermometers(DEVICE_PATH):
-            print("[%s] %s: %.1f° F" %
+            temperature_message = ""
+            
+            try:
+                temperature_message =  "%.1f° F" % (thermometer.temp_f)
+            except thermo.TempReadingError:
+                temperature_message = "Failed to read temperature"
+                
+            print("[%s] %s: %s" %
                   (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                   thermometer.serial, thermometer.temp_f))
+                   thermometer.serial, temperature_message))
             
         time.sleep(settings.WAIT_SECS)
 
