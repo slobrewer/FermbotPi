@@ -50,3 +50,33 @@ def test_thermometer_temp_f_bad_crc():
     thermometers = fermbot.thermo.get_thermometers(BAD_CRC_THERMO_BUS_PATH)
     with pytest.raises(fermbot.thermo.TempReadingError): #@UndefinedVariable
         thermometers[0].temp_f
+
+class ListThermoLogger(fermbot.thermo.ThermoLogger):
+    """Simple ThermoLogger implementation that stores the temperatures in
+    a list"""
+    def __init__(self):
+        pass
+    
+    # Log Entries property
+    _log_entries = []
+    
+    @property
+    def log_entries(self):
+        """Return a list of the entries in the log"""
+        return self._log_entries
+    
+    # Overrides for ThermoLogger
+    def log_thermo(self, thermo):
+        """Log the temperature from the thermometer"""
+        self.log_entries.append(thermo.temp_f)
+
+def test_logger_simple_log():
+    logger = ListThermoLogger()
+    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH)
+    
+    logger.log_thermo(thermometers[0])
+    logger.log_thermo(thermometers[0])
+    assert len(logger.log_entries) == 2
+    assert logger.log_entries[0] == decimal.Decimal("67.212")
+    assert logger.log_entries[1] == decimal.Decimal("67.212")
+    

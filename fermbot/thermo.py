@@ -14,16 +14,18 @@ class Thermometer(object):
     def __init__(self, bus_master_path, serial):
         self.bus_master_path = bus_master_path
         self.serial = serial
-    
-    # Serial property: the unique 1-wire serial number for the thermometer    
+       
+    # Serial property
     _serial = ""
     
     @property
     def serial(self):
+        """Return a string of the 1-wire serial number for the thermometer""" 
         return self._serial
     
     @serial.setter
     def serial(self, value):
+        """Set the 1-wire serial number for the thermometer""" 
         if not isinstance(value, str):
             raise TypeError("Serial must be a string")
         if not value.startswith(DS18B20_1_WIRE_TYPE_PREFIX + "-"):
@@ -31,15 +33,17 @@ class Thermometer(object):
                              " 1-wire devices are supported.")
         self._serial = value
     
-    # Bus Master Path property: the file system path to the 1-wire bus master
+    # Bus Master Path property
     _bus_master_path = ""
     
     @property
     def bus_master_path(self):
+        """Return a string of the file system path to the 1-wire bus master"""
         return self._bus_master_path
     
     @bus_master_path.setter
     def bus_master_path(self, value):
+        """Set the file system path to the 1-wire bus master"""
         if not os.access(value, os.F_OK):
             raise ValueError("bus_master_path '" + value +
                              "' doesn't point to a directory")
@@ -50,11 +54,15 @@ class Thermometer(object):
         self._bus_master_path = value
         pass
     
-    # Temperature in Celcius property: provides the current temperature in
-    # degrees Celcius by querying the 1-wire bus files.  Precision is to the
-    # 1000th of a degree but accuracy is only to +/-0.5 C.  Typed as a Decimal
+    # Temperature in Celcius property
     @property
     def temp_c(self):
+        """Returns a Decimal that is the current temperature in degrees Celcius
+        
+        
+        Queries the 1-wire bus files.  Precision is to the 1000th of a
+        degree but accuracy is only to +/-0.5 C.
+        """
         with open(self.bus_master_path + self.serial +
                   TEMPERATURE_FILE_PATH) as temperature_file:
             crc_line = temperature_file.readline();
@@ -71,17 +79,48 @@ class Thermometer(object):
             return (Decimal(temperature_data[2:]) /
                 Decimal(1000))
     
-    # Temperature in Fahrenheit property: provides the current temperature in
-    # degrees Farenheit by querying the 1-wire bus files.  Precision is to the
-    # 1000th of a degree but accuracy is only to +/-0.5 C.  Typed as a Decimal
+    # Temperature in Fahrenheit property
     @property
     def temp_f(self):
+        """Return a Decimal that is the current temperature in degrees Farenheit
+        
+        Queries the 1-wire bus files.  Precision is to the 1000th of a degree
+        but accuracy is only to +/-0.5 C.
+        """
         return ((self.temp_c * Decimal(9) / Decimal(5)) +
                 Decimal(32)).quantize(Decimal('1.000'))
 
 class TempReadingError(Exception):
     def __init__(self, msg):
         self.msg = msg
+
+class ThermoLogger():
+    def __init__(self):
+        pass
+    
+#    # Next Logger property
+#    _next_logger = None
+#    
+#    @property
+#    def next_logger(self):
+#        """Return the next ThermoLogger in the chain"""
+#        return self._logs
+#    
+#    def add_log(self, log):
+#        """Add a ThermoLog as the next ThermoLogger in the chain
+#        
+#        Warning, this will remove the existing next ThermoLogger so be sure
+#        to only call this on the last logger in the chain if you want to just
+#        append an additional logger
+#        """
+#        self._next_logger = log
+    
+    def log_thermo(self, thermo):
+        """Log the data from the Thermometer to all configured logs
+        
+        Subclasses generally override this method.
+        """
+        pass
 
 def get_thermometers(bus_master_path):
     thermometers = []
