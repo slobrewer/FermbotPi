@@ -1,10 +1,12 @@
-import pytest
-import fermbot.thermo
-import decimal
+# -*- coding: utf-8 -*-
+import pytest, fermbot.thermo, decimal, logging.config
 
 SINGLE_THERMO_BUS_PATH = "data/thermo/single_thermo_bus_master"
 DUAL_THERMO_BUS_PATH = "data/thermo/dual_thermo_bus_master"
 BAD_CRC_THERMO_BUS_PATH = "data/thermo/bad_crc_thermo_bus_master"
+
+FILE_LOGGER_LOG_FILE = "fermbot_thermo.log"
+logging.config.fileConfig('../fermbot/logging.conf')
 
 def test_get_thermometers_exactly_one():
     assert len(fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH)) == 1
@@ -71,12 +73,26 @@ class ListThermoLogger(fermbot.thermo.ThermoLogger):
         self.log_entries.append(thermo.temp_f)
 
 def test_logger_simple_log():
-    logger = ListThermoLogger()
+    thermo_logger = ListThermoLogger()
     thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH)
     
-    logger.log_thermo(thermometers[0])
-    logger.log_thermo(thermometers[0])
-    assert len(logger.log_entries) == 2
-    assert logger.log_entries[0] == decimal.Decimal("67.212")
-    assert logger.log_entries[1] == decimal.Decimal("67.212")
+    thermo_logger.log_thermo(thermometers[0])
+    thermo_logger.log_thermo(thermometers[0])
+    assert len(thermo_logger.log_entries) == 2
+    assert thermo_logger.log_entries[0] == decimal.Decimal("67.212")
+    assert thermo_logger.log_entries[1] == decimal.Decimal("67.212")
+
+def test_logger_file_log():
+    thermo_logger = fermbot.thermo.FileThermoLogger()
+    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH)
+
+    thermo_logger.log_thermo(thermometers[0])
     
+    with open(FILE_LOGGER_LOG_FILE) as log_file:
+        last_line = ""
+        for line in log_file:
+            last_line = line
+        
+        assert (" ".join(last_line.split()[-5:]) ==
+                "Thermometer 28-0000041481e8 at 67.2° F")
+        

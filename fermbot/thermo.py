@@ -1,4 +1,5 @@
-import os
+# -*- coding: utf-8 -*-
+import os, logging
 
 from decimal import Decimal
 
@@ -98,29 +99,22 @@ class ThermoLogger():
     def __init__(self):
         pass
     
-#    # Next Logger property
-#    _next_logger = None
-#    
-#    @property
-#    def next_logger(self):
-#        """Return the next ThermoLogger in the chain"""
-#        return self._logs
-#    
-#    def add_log(self, log):
-#        """Add a ThermoLog as the next ThermoLogger in the chain
-#        
-#        Warning, this will remove the existing next ThermoLogger so be sure
-#        to only call this on the last logger in the chain if you want to just
-#        append an additional logger
-#        """
-#        self._next_logger = log
-    
     def log_thermo(self, thermo):
         """Log the data from the Thermometer to all configured logs
         
         Subclasses generally override this method.
         """
         pass
+
+class FileThermoLogger(ThermoLogger):
+    def __init__(self):
+        pass
+    
+    def log_thermo(self, thermo):
+        """Log the thermometer serial, temp, and time to a log file"""
+        logger = logging.getLogger("fermbotThermoApp")
+        logger.info("Thermometer %s at %.1f° F" % (thermo.serial,
+                                                   thermo.temp_f))
 
 def get_thermometers(bus_master_path):
     thermometers = []
