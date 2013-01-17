@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import time, glob, thermo
+import time, thermo
 import display_temps_settings as settings
 from datetime import datetime
 
