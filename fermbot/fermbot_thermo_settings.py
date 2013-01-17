@@ -1,0 +1,2 @@
+# constants
+DEBUG = False

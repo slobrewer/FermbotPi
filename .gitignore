@@ -37,3 +37,4 @@ nosetests.xml
 
 # Other additions
 tests/fermbot_thermo.log
+fermbot/fermbot_thermo.log
