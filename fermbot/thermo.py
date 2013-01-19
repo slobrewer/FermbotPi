@@ -113,7 +113,7 @@ class FileThermoLogger(ThermoLogger):
     def log_thermo(self, thermo, appName):
         """Log the thermometer serial, temp, and time to a log file"""
         logger = logging.getLogger(appName)
-        logger.info("Thermometer %s at %.1f° F" % (thermo.serial,
+        logger.info("%s at %.1f° F" % (thermo.serial,
                                                    thermo.temp_f))
 
 def get_thermometers(bus_master_path):
