@@ -1,2 +1,2 @@
 # constants
-DEBUG = True
+DEBUG = False
