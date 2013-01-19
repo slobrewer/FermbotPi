@@ -8,12 +8,13 @@
 import thermo, logging.config, inspect, os
 import fermbot_thermo_settings as settings
 
-LOG_CONFIG_FILE = (os.path.dirname(os.path.abspath(inspect.getfile(
-                   inspect.currentframe()))) + "/logging.conf")
+cwd = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+LOG_CONFIG_FILE = os.path.join(cwd, "logging.conf")
 
 # Debugging constants
 if settings.DEBUG:
-    DEVICE_PATH = "../tests/data/thermo/dual_thermo_bus_master"
+    DEVICE_PATH = os.path.join(cwd,
+                               "../tests/data/thermo/dual_thermo_bus_master")
     LOGGING_APP_NAME = "fermbotThermoDebug"
 else:
     DEVICE_PATH = thermo.RPI_BUS_PATH

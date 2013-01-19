@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 import pytest, fermbot.thermo, decimal, logging.config, inspect, os
 
-SINGLE_THERMO_BUS_PATH = "data/thermo/single_thermo_bus_master"
-DUAL_THERMO_BUS_PATH = "data/thermo/dual_thermo_bus_master"
-BAD_CRC_THERMO_BUS_PATH = "data/thermo/bad_crc_thermo_bus_master"
+cwd = os.path.dirname(os.path.abspath(inspect.getfile(
+                   inspect.currentframe())))
+SINGLE_THERMO_BUS_PATH = os.path.join(cwd,
+                                      "data/thermo/single_thermo_bus_master")
+DUAL_THERMO_BUS_PATH = os.path.join(cwd, "data/thermo/dual_thermo_bus_master")
+BAD_CRC_THERMO_BUS_PATH = os.path.join(cwd,
+                                       "data/thermo/bad_crc_thermo_bus_master")
 
 FILE_LOGGER_LOG_FILE = "fermbot_thermo.log"
-LOG_CONFIG_FILE = (os.path.dirname(os.path.abspath(inspect.getfile(
-                   inspect.currentframe()))) + "/../fermbot/logging.conf")
+LOG_CONFIG_FILE = os.path.join(cwd, "../fermbot/logging.conf")
 logging.config.fileConfig(LOG_CONFIG_FILE)
 LOGGING_APP_NAME = "fermbotThermoTest"
 
