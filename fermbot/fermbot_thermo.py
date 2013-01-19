@@ -14,8 +14,10 @@ LOG_CONFIG_FILE = "logging.conf"
 # Debugging constants
 if settings.DEBUG:
     DEVICE_PATH = "../tests/data/thermo/dual_thermo_bus_master"
+    LOGGING_APP_NAME = "fermbotThermoDebug"
 else:
     DEVICE_PATH = thermo.RPI_BUS_PATH
+    LOGGING_APP_NAME = "fermbotThermoApp"
 
 
 def main():
@@ -23,7 +25,7 @@ def main():
     
     for thermometer in thermo.get_thermometers(DEVICE_PATH):
         thermo_logger = thermo.FileThermoLogger()
-        thermo_logger.log_thermo(thermometer)
+        thermo_logger.log_thermo(thermometer, LOGGING_APP_NAME)
 
 
 if __name__ == '__main__':

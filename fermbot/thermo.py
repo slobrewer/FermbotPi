@@ -110,9 +110,9 @@ class FileThermoLogger(ThermoLogger):
     def __init__(self):
         pass
     
-    def log_thermo(self, thermo):
+    def log_thermo(self, thermo, appName):
         """Log the thermometer serial, temp, and time to a log file"""
-        logger = logging.getLogger("fermbotThermoApp")
+        logger = logging.getLogger(appName)
         logger.info("Thermometer %s at %.1f° F" % (thermo.serial,
                                                    thermo.temp_f))
 

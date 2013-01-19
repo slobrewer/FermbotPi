@@ -7,6 +7,7 @@ BAD_CRC_THERMO_BUS_PATH = "data/thermo/bad_crc_thermo_bus_master"
 
 FILE_LOGGER_LOG_FILE = "fermbot_thermo.log"
 logging.config.fileConfig('../fermbot/logging.conf')
+LOGGING_APP_NAME = "fermbotThermoTest"
 
 def test_get_thermometers_exactly_one():
     assert len(fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH)) == 1
@@ -86,7 +87,7 @@ def test_logger_file_log():
     thermo_logger = fermbot.thermo.FileThermoLogger()
     thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH)
 
-    thermo_logger.log_thermo(thermometers[0])
+    thermo_logger.log_thermo(thermometers[0], LOGGING_APP_NAME)
     
     with open(FILE_LOGGER_LOG_FILE) as log_file:
         last_line = ""
