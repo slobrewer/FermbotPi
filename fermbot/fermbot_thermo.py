@@ -5,11 +5,11 @@
 # and logs the results.  This is intended to be called by a cron job
 # so only runs through once on each call
 
-import thermo, logging.config
+import thermo, logging.config, inspect, os
 import fermbot_thermo_settings as settings
-from datetime import datetime
 
-LOG_CONFIG_FILE = "logging.conf"
+LOG_CONFIG_FILE = (os.path.dirname(os.path.abspath(inspect.getfile(
+                   inspect.currentframe()))) + "/logging.conf")
 
 # Debugging constants
 if settings.DEBUG:
