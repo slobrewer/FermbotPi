@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, logging, datetime, inspect
+import os, logging, datetime, inspect, errno
 import sqlite3 as lite
 from decimal import Decimal
 
@@ -204,6 +204,14 @@ class SQLThermoLogger(ThermoLogger):
                           thermo.temp_c))
  
     def initDatabase(self):
+        try:
+            os.makedirs(os.path.dirname(self.db_file))
+        except OSError as exc:
+            if exc.errno == errno.EEXIST and os.path.isdir(
+                os.path.dirname(self.db_file)):
+                pass
+            else: raise
+
         c = self._conn.cursor()
         with open(THERMO_LOGGER_SQL_FILE, 'r') as init_file:
             init_query = init_file.read()
