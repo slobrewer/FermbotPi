@@ -38,3 +38,5 @@ nosetests.xml
 # Other additions
 tests/fermbot_thermo.log
 fermbot/fermbot_thermo.log
+tests/test.db
+fermbot/test.db

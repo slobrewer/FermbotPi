@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import os, logging
-
+import os, logging, datetime, inspect
+import sqlite3 as lite
 from decimal import Decimal
 
 RPI_BUS_PATH = "/sys/devices/w1_bus_master1"
@@ -11,14 +11,19 @@ DS18B20_1_WIRE_TYPE_PREFIX = hex(DS18B20_1_WIRE_TYPE).replace("0x", "", 1)
 SLAVE_LIST_FILE_PATH = "/w1_master_slaves"
 TEMPERATURE_FILE_PATH = "/w1_slave"
 
+cwd = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+THERMO_LOGGER_SQL_FILE = os.path.join(cwd, "thermo_logger.sql") 
+
+
 class Thermometer(object):
     def __init__(self, bus_master_path, serial):
+        self._serial = ""
+        self._bus_master_path = ""
+        
         self.bus_master_path = bus_master_path
         self.serial = serial
        
     # Serial property
-    _serial = ""
-    
     @property
     def serial(self):
         """Return a string of the 1-wire serial number for the thermometer""" 
@@ -33,10 +38,9 @@ class Thermometer(object):
             raise ValueError("Only type " + DS18B20_1_WIRE_TYPE_PREFIX +
                              " 1-wire devices are supported.")
         self._serial = value
+        return self._serial
     
     # Bus Master Path property
-    _bus_master_path = ""
-    
     @property
     def bus_master_path(self):
         """Return a string of the file system path to the 1-wire bus master"""
@@ -53,7 +57,7 @@ class Thermometer(object):
             value += "/"
         
         self._bus_master_path = value
-        pass
+        return self._bus_master_path
     
     # Temperature in Celcius property
     @property
@@ -95,26 +99,116 @@ class TempReadingError(Exception):
     def __init__(self, msg):
         self.msg = msg
 
-class ThermoLogger():
+class ThermoLogger(object):
     def __init__(self):
-        pass
+        self._next = None
+        
+    # Next logger property
+    @property
+    def next(self):
+        return self._next
+    
+    @next.setter
+    def next(self, value):
+        self._next = value
+        return self._next
+    
+    def add_logger(self, logger):
+        if (self.next == None):
+            self.next = logger
+        else:
+            self.next.add_logger(logger)
     
     def log_thermo(self, thermo):
-        """Log the data from the Thermometer to all configured logs
+        """Log the data from the Thermometer to all configured logs"""
+        self._log_thermo_without_chain(thermo)
         
-        Subclasses generally override this method.
+        if (self.next != None):
+            self.next.log_thermo(thermo)
+    
+    def _log_thermo_without_chain(self, thermo):
+        """Log the data from the Thermometer for the current class without
+        calling down the logging chain.  Subclasses must implement this method
         """
-        pass
+        raise TypeError('Abstract method `' + self._class.__name__ \
+                            + '.' + self._function + '\' called')
 
 class FileThermoLogger(ThermoLogger):
-    def __init__(self):
-        pass
+    def __init__(self, app_name):
+        """Create a Python logging based temperature logger with configured
+        logged application name app_name"""
+        super(FileThermoLogger, self).__init__()
+        self._app_name = ""
+        
+        self.app_name = app_name
     
-    def log_thermo(self, thermo, appName):
+    # The application name configured in the logging configuration property
+    @property
+    def app_name(self):
+        return self._app_name;
+    
+    @app_name.setter
+    def app_name(self, value):
+        self._app_name = value
+        return self._app_name
+    
+    def _log_thermo_without_chain(self, thermo):
         """Log the thermometer serial, temp, and time to a log file"""
-        logger = logging.getLogger(appName)
-        logger.info("%s at %.1f° F" % (thermo.serial,
-                                                   thermo.temp_f))
+        logger = logging.getLogger(self.app_name)
+        logger.info("%s at %.1f° F" % (thermo.serial, thermo.temp_f))
+
+# SQLite3/decimal.Decimal converters        
+def adapt_decimal(d):
+    return str(d)
+
+def convert_decimal(s):
+    return Decimal(s)
+
+lite.register_adapter(Decimal, adapt_decimal)
+lite.register_converter("decimal", convert_decimal)
+
+class SQLThermoLogger(ThermoLogger):
+
+    def __init__(self, db_file):
+        """Create a SQLite3 based temperature logger using database file
+        named dbFile"""
+        super(SQLThermoLogger, self).__init__()
+
+        self._db_file = ""
+        
+        self.db_file = db_file
+        self._conn = lite.connect(self.db_file)
+        try:
+            self.initDatabase()
+        except:
+            print 'Something has gone wrong initializing the database'
+            raise
+    
+    # The path to the database file property
+    @property
+    def db_file(self):
+        return self._db_file
+    
+    @db_file.setter
+    def db_file(self, value):
+        self._db_file = value
+        return self._db_file
+    
+    def _log_thermo_without_chain(self, thermo):
+        with lite.connect(self.db_file,
+                          detect_types=lite.PARSE_DECLTYPES) as conn:
+            conn.execute("""INSERT INTO temperature_points(thermometer_serial,
+                         record_time, temp_celcius)
+                         VALUES (?, ?, ?)""",
+                         (thermo.serial, datetime.datetime.now(),
+                          thermo.temp_c))
+ 
+    def initDatabase(self):
+        c = self._conn.cursor()
+        with open(THERMO_LOGGER_SQL_FILE, 'r') as init_file:
+            init_query = init_file.read()
+        c.executescript(init_query)
+
 
 def get_thermometers(bus_master_path):
     thermometers = []
