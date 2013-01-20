@@ -177,7 +177,6 @@ class SQLThermoLogger(ThermoLogger):
         self._db_file = ""
         
         self.db_file = db_file
-        self._conn = lite.connect(self.db_file)
         try:
             self.initDatabase()
         except:
@@ -212,6 +211,7 @@ class SQLThermoLogger(ThermoLogger):
                 pass
             else: raise
 
+        self._conn = lite.connect(self.db_file)
         c = self._conn.cursor()
         with open(THERMO_LOGGER_SQL_FILE, 'r') as init_file:
             init_query = init_file.read()
