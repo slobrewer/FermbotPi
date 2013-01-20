@@ -35,6 +35,9 @@ nosetests.xml
 .pydevproject
 .settings/
 
+# Python cached files
+__pycache__
+
 # Other additions
 tests/fermbot_thermo.log
 fermbot/fermbot_thermo.log
