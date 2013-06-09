@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import pytest, fermbot.thermo, decimal, logging.config, inspect, os
+import pytest, fermbot.thermo, logging.config, inspect, os
 import sqlite3 as lite
 from decimal import Decimal
 
@@ -146,3 +146,17 @@ def test_logger_chained_log():
     assert len(thermo_logger_3.log_entries) == 2
     assert thermo_logger_3.log_entries[0] == Decimal("67.212")
     assert thermo_logger_3.log_entries[1] == Decimal("64.625")
+    
+def test_temp_controller_max_temp_f():
+    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
+    temp_controller = fermbot.thermo.TempController(thermometers[0],
+                                                    Decimal("11.0"))
+    
+    assert temp_controller.max_temp_f == Decimal("11.0")
+
+def test_temp_controller_initial_state():
+    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
+    temp_controller = fermbot.thermo.TempController(thermometers[0],
+                                                    Decimal("11.0"))
+    
+    assert temp_controller.state == fermbot.thermo.TempController.States.OFF

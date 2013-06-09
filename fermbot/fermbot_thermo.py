@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 # Running this script retrieves the temperatures for all attached thermometers
-# and logs the results.  This is intended to be called by a cron job
-# so only runs through once on each call
+# and logs the results.  Additionally this script applies the appropriate
+# temperature control logic to turn on or off controllers.  This is intended to
+# be called by a cron job so only runs through once on each call
 
 import thermo, logging.config, inspect, os
 import fermbot_thermo_settings as settings

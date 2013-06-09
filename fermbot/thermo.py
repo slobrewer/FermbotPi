@@ -14,6 +14,14 @@ TEMPERATURE_FILE_PATH = "/w1_slave"
 cwd = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 THERMO_LOGGER_SQL_FILE = os.path.join(cwd, "thermo_logger.sql") 
 
+# A helper method for enumerations from
+# http://stackoverflow.com/questions/36932/how-can-i-represent-an-enum-in-python
+def enum(*sequential, **named):
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    reverse = dict((value, key) for key, value in enums.iteritems())
+    enums['reverse_mapping'] = reverse
+    return type('Enum', (), enums)
+
 
 class Thermometer(object):
     def __init__(self, bus_master_path, serial):
@@ -135,7 +143,7 @@ class ThermoLogger(object):
 
 class FileThermoLogger(ThermoLogger):
     def __init__(self, app_name):
-        """Create a Python logging based temperature logger with configured
+        """Create a file logging based temperature logger with configured
         logged application name app_name"""
         super(FileThermoLogger, self).__init__()
         self._app_name = ""
@@ -226,3 +234,28 @@ def get_thermometers(bus_master_path):
                                                 slave.strip()))
                 
     return thermometers
+
+class TempController(object):
+    States = enum("OFF", "COOLING")
+    
+    def __init__(self, thermometer, max_temp_f):
+        """Create a temperature controller"""
+        
+        self._thermometer = thermometer
+        self._max_temp_f = max_temp_f
+        self._state = TempController.States.OFF
+
+    # Property holding the thermometer for this temp controller
+    @property
+    def thermometer(self):
+        return self._thermometer
+
+    # Property holding the maximum temperature in degrees Fahrenheit.
+    @property
+    def max_temp_f(self):
+        return self._max_temp_f
+    
+    # Property holding the current temperature control state
+    @property
+    def state(self):
+        return self._state
