@@ -183,7 +183,7 @@ class SQLThermoLogger(ThermoLogger):
             print 'Something has gone wrong initializing the database'
             raise
     
-    # The path to the database file property
+    # Property holding the path to the database file 
     @property
     def db_file(self):
         return self._db_file
@@ -216,7 +216,6 @@ class SQLThermoLogger(ThermoLogger):
         with open(THERMO_LOGGER_SQL_FILE, 'r') as init_file:
             init_query = init_file.read()
         c.executescript(init_query)
-
 
 def get_thermometers(bus_master_path):
     thermometers = []
