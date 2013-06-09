@@ -140,6 +140,20 @@ class ThermoLogger(object):
         """
         raise TypeError('Abstract method `' + self._class.__name__ \
                             + '.' + self._function + '\' called')
+    
+    def log_temp_controller(self, temp_controller):
+        """Log the data from the TempController to all configured logs"""
+        self._log_temp_controller_without_chain(temp_controller)
+        
+        if (self.next != None):
+            self.next.log_temp_controller(temp_controller)
+    
+    def _log_temp_controller_without_chain(self, temp_controller):
+        """Log the data from the TempController for the current class without
+        calling down the logging chain.  Subclasses must implement this method
+        """
+        raise TypeError('Abstract method `' + self._class.__name__ \
+                            + '.' + self._function + '\' called')
 
 class FileThermoLogger(ThermoLogger):
     def __init__(self, app_name):
@@ -164,6 +178,16 @@ class FileThermoLogger(ThermoLogger):
         """Log the thermometer serial, temp, and time to a log file"""
         logger = logging.getLogger(self.app_name)
         logger.info("%s at %.1f° F" % (thermo.serial, thermo.temp_f))
+    
+    def _log_temp_controller_without_chain(self, temp_controller):
+        """Log the TempController thermo serial, thermo temp, target temp,
+        state, and time to a log file"""
+        logger = logging.getLogger(self.app_name)
+        logger.info("TempController %s at %.1f° F, target is %.1f° F so TC is %s"
+                    % (temp_controller.thermometer.serial,
+                       temp_controller.thermometer.temp_f,
+                       temp_controller.max_temp_f,
+                       TempController.States.reverse_mapping[temp_controller.state]))
 
 # SQLite3/decimal.Decimal converters        
 def adapt_decimal(d):
@@ -209,6 +233,10 @@ class SQLThermoLogger(ThermoLogger):
                          VALUES (?, ?, ?)""",
                          (thermo.serial, datetime.datetime.now(),
                           thermo.temp_c))
+    
+    def _log_temp_controller_without_chain(self, thermo):
+        #TODO: Write SQL logging code
+        return
  
     def initDatabase(self):
         try:
@@ -243,7 +271,7 @@ class TempController(object):
         
         self._thermometer = thermometer
         self._max_temp_f = max_temp_f
-        self._state = TempController.States.OFF
+        self._state = self.States.OFF
 
     # Property holding the thermometer for this temp controller
     @property
@@ -259,3 +287,15 @@ class TempController(object):
     @property
     def state(self):
         return self._state
+    
+    @state.setter
+    def state(self, new_state):
+        self._state = new_state
+        return self._state
+    
+    def process(self):
+        if (self.thermometer.temp_f > self.max_temp_f):
+            self.state = self.States.COOLING
+        else:
+            self.state = self.States.OFF
+        return

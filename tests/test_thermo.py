@@ -160,3 +160,51 @@ def test_temp_controller_initial_state():
                                                     Decimal("11.0"))
     
     assert temp_controller.state == fermbot.thermo.TempController.States.OFF
+    
+def test_temp_controller_cooling():
+    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
+    temp_controller = fermbot.thermo.TempController(thermometers[0],
+                                                    Decimal("65.0"))
+    temp_controller.process()
+    
+    assert temp_controller.state == fermbot.thermo.TempController.States.COOLING
+    
+def test_temp_controller_not_cooling():
+    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
+    temp_controller = fermbot.thermo.TempController(thermometers[0],
+                                                    Decimal("70.0"))
+    temp_controller.process()
+    
+    assert temp_controller.state == fermbot.thermo.TempController.States.OFF
+    
+def test_temp_controller_cooling_file_log():
+    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
+    temp_controller = fermbot.thermo.TempController(thermometers[0],
+                                                    Decimal("65.0"))
+    temp_controller.process()
+    thermo_logger = fermbot.thermo.FileThermoLogger(LOGGING_APP_NAME)
+    thermo_logger.log_temp_controller(temp_controller)
+    
+    with open(FILE_LOGGER_LOG_FILE) as log_file:
+        last_line = ""
+        for line in log_file:
+            last_line = line
+        
+        assert (" ".join(last_line.split()[-12:]) ==
+                "28-0000041481e8 at 67.2° F, target is 65.0° F so TC is COOLING")
+    
+def test_temp_controller_not_cooling_file_log():
+    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
+    temp_controller = fermbot.thermo.TempController(thermometers[0],
+                                                    Decimal("70.0"))
+    temp_controller.process()
+    thermo_logger = fermbot.thermo.FileThermoLogger(LOGGING_APP_NAME)
+    thermo_logger.log_temp_controller(temp_controller)
+    
+    with open(FILE_LOGGER_LOG_FILE) as log_file:
+        last_line = ""
+        for line in log_file:
+            last_line = line
+        
+        assert (" ".join(last_line.split()[-12:]) ==
+                "28-0000041481e8 at 67.2° F, target is 70.0° F so TC is OFF")
