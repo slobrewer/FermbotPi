@@ -3,6 +3,22 @@ import os, logging, datetime, inspect, errno
 import sqlite3 as lite
 from decimal import Decimal
 
+# Determine if running on a Raspberry Pi or not
+IS_RASPBERRY_PI = False
+import platform
+if (platform.machine() == "armv6l" and platform.system() == "Linux"):
+    IS_RASPBERRY_PI = True
+
+# Import the GPIO library only if we're on a Raspberry Pi
+if (IS_RASPBERRY_PI):
+    try:
+        import RPi.GPIO as GPIO
+    except RuntimeError:
+        print("Error importing RPi.GPIO!  This is probably because you need " +
+              "superuser privileges.  You can achieve this by using 'sudo' " +
+              "to run your script")
+
+
 RPI_BUS_PATH = "/sys/devices/w1_bus_master1"
 
 DS18B20_1_WIRE_TYPE = 0x28
@@ -299,3 +315,63 @@ class TempController(object):
         else:
             self.state = self.States.OFF
         return
+
+class ThermoDevice(object):
+    States = enum("OFF", "ON")
+
+    def __init__(self):
+        self._state = self.States.OFF
+    
+    @property
+    def state(self):
+        return self._state
+    
+    def turn_on(self):
+        """Log the data from the Thermometer for the current class without
+        calling down the logging chain.  Subclasses must implement this method
+        """
+        raise TypeError('Abstract method `' + self._class.__name__ \
+                            + '.' + self._function + '\' called')
+    
+    def turn_off(self):
+        """Log the data from the Thermometer for the current class without
+        calling down the logging chain.  Subclasses must implement this method
+        """
+        raise TypeError('Abstract method `' + self._class.__name__ \
+                            + '.' + self._function + '\' called')
+
+class CoolingThermoDevice(ThermoDevice):
+    def __init__(self):
+        super(CoolingThermoDevice, self).__init__()
+
+class DeviceInterface(object):
+    States = enum("OFF", "ON")
+    
+    def __init__(self):
+        return
+    
+    def turn_on(self):
+        """Log the data from the Thermometer for the current class without
+        calling down the logging chain.  Subclasses must implement this method
+        """
+        raise TypeError('Abstract method `' + self._class.__name__ \
+                            + '.' + self._function + '\' called')
+    
+    def turn_off(self):
+        """Log the data from the Thermometer for the current class without
+        calling down the logging chain.  Subclasses must implement this method
+        """
+        raise TypeError('Abstract method `' + self._class.__name__ \
+                            + '.' + self._function + '\' called')
+    
+class MockDeviceInterface(object):
+    MOCK_FILE_NAME = "mock_device"
+    
+    def __init__(self):
+        super(MockDeviceInterface, self).__init__()
+    
+    def turn_on(self):
+        return
+    
+    def turn_off(self): 
+        return   
