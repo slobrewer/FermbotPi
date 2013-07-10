@@ -407,9 +407,9 @@ class TempController(object):
 
 class TempControllerFactory(object):
     if (IS_RASPBERRY_PI):
-        device = MockDevice()
-    else:
         device = PiDevice()
+    else:
+        device = MockDevice()
     
     @classmethod
     def simpleCoolingController(cls, bus_path, max_temp_f):
