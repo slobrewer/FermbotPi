@@ -33,8 +33,8 @@ def main():
         thermo_logger.log_thermo(thermometer)
 
     # TODO: Currently set to the last controller, set more intelligently
-    temp_controller = thermo.TempController(
-        thermo.get_thermometers(DEVICE_PATH)[-1], settings.MAX_TEMP_F)
+    temp_controller = thermo.TempControllerFactory.simpleCoolingController(
+        DEVICE_PATH, settings.MAX_TEMP_F)
     temp_controller.process()
     thermo_logger.log_temp_controller(temp_controller)
 

@@ -46,7 +46,7 @@ def test_thermometer_multiple_temp_c():
         
 def test_thermometer_temp_c_bad_crc():
     thermometers = fermbot.thermo.get_thermometers(BAD_CRC_THERMO_BUS_PATH)
-    with pytest.raises(fermbot.thermo.TempReadingError): #@UndefinedVariable
+    with pytest.raises(fermbot.thermo.TempReadingError):  # @UndefinedVariable
         thermometers[0].temp_c
     
 def test_thermometer_temp_f():
@@ -60,7 +60,7 @@ def test_thermometer_multiple_temp_f():
         
 def test_thermometer_temp_f_bad_crc():
     thermometers = fermbot.thermo.get_thermometers(BAD_CRC_THERMO_BUS_PATH)
-    with pytest.raises(fermbot.thermo.TempReadingError): #@UndefinedVariable
+    with pytest.raises(fermbot.thermo.TempReadingError):  # @UndefinedVariable
         thermometers[0].temp_f
 
 class ListThermoLogger(fermbot.thermo.ThermoLogger):
@@ -103,7 +103,7 @@ def test_logger_file_log():
         for line in log_file:
             last_line = line
         
-        assert (" ".join(last_line.split()[-4:]) ==
+        assert (" ".join(last_line.split()[-4:]) == 
                 "28-0000041481e8 at 67.2° F")
 
 def test_logger_sql_log():
@@ -148,39 +148,34 @@ def test_logger_chained_log():
     assert thermo_logger_3.log_entries[1] == Decimal("64.625")
     
 def test_temp_controller_max_temp_f():
-    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
-    temp_controller = fermbot.thermo.TempController(thermometers[0],
-                                                    Decimal("11.0"))
+    temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
+        SINGLE_THERMO_BUS_PATH, Decimal("11.0"))
     
     assert temp_controller.max_temp_f == Decimal("11.0")
 
 def test_temp_controller_initial_state():
-    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
-    temp_controller = fermbot.thermo.TempController(thermometers[0],
-                                                    Decimal("11.0"))
+    temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
+        SINGLE_THERMO_BUS_PATH, Decimal("11.0"))
     
     assert temp_controller.state == fermbot.thermo.TempController.States.OFF
     
 def test_temp_controller_cooling():
-    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
-    temp_controller = fermbot.thermo.TempController(thermometers[0],
-                                                    Decimal("65.0"))
+    temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
+        SINGLE_THERMO_BUS_PATH, Decimal("65.0"))
     temp_controller.process()
     
     assert temp_controller.state == fermbot.thermo.TempController.States.COOLING
     
 def test_temp_controller_not_cooling():
-    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
-    temp_controller = fermbot.thermo.TempController(thermometers[0],
-                                                    Decimal("70.0"))
+    temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
+        SINGLE_THERMO_BUS_PATH, Decimal("70.0"))
     temp_controller.process()
     
     assert temp_controller.state == fermbot.thermo.TempController.States.OFF
     
 def test_temp_controller_cooling_file_log():
-    thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
-    temp_controller = fermbot.thermo.TempController(thermometers[0],
-                                                    Decimal("65.0"))
+    temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
+        SINGLE_THERMO_BUS_PATH, Decimal("65.0"))
     temp_controller.process()
     thermo_logger = fermbot.thermo.FileThermoLogger(LOGGING_APP_NAME)
     thermo_logger.log_temp_controller(temp_controller)
@@ -190,13 +185,13 @@ def test_temp_controller_cooling_file_log():
         for line in log_file:
             last_line = line
         
-        assert (" ".join(last_line.split()[-12:]) ==
+        assert (" ".join(last_line.split()[-12:]) == 
                 "28-0000041481e8 at 67.2° F, target is 65.0° F so TC is COOLING")
     
 def test_temp_controller_not_cooling_file_log():
     thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
-    temp_controller = fermbot.thermo.TempController(thermometers[0],
-                                                    Decimal("70.0"))
+    temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
+        SINGLE_THERMO_BUS_PATH, Decimal("70.0"))
     temp_controller.process()
     thermo_logger = fermbot.thermo.FileThermoLogger(LOGGING_APP_NAME)
     thermo_logger.log_temp_controller(temp_controller)
@@ -206,5 +201,5 @@ def test_temp_controller_not_cooling_file_log():
         for line in log_file:
             last_line = line
         
-        assert (" ".join(last_line.split()[-12:]) ==
+        assert (" ".join(last_line.split()[-12:]) == 
                 "28-0000041481e8 at 67.2° F, target is 70.0° F so TC is OFF")

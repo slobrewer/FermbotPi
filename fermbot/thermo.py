@@ -2,6 +2,7 @@
 import os, logging, datetime, inspect, errno
 import sqlite3 as lite
 from decimal import Decimal
+import fermbot_thermo_settings as settings
 
 # Determine if running on a Raspberry Pi or not
 IS_RASPBERRY_PI = False
@@ -14,12 +15,19 @@ if (IS_RASPBERRY_PI):
     try:
         import RPi.GPIO as GPIO
     except RuntimeError:
-        print("Error importing RPi.GPIO!  This is probably because you need " +
-              "superuser privileges.  You can achieve this by using 'sudo' " +
+        print("Error importing RPi.GPIO!  This is probably because you need " + 
+              "superuser privileges.  You can achieve this by using 'sudo' " + 
               "to run your script")
 
-
 RPI_BUS_PATH = "/sys/devices/w1_bus_master1"
+
+# Debugging constants
+if settings.DEBUG:
+    cwd = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    DEVICE_PATH = os.path.join(cwd,
+                               "../tests/data/thermo/dual_thermo_bus_master")
+else:
+    DEVICE_PATH = RPI_BUS_PATH
 
 DS18B20_1_WIRE_TYPE = 0x28
 DS18B20_1_WIRE_TYPE_PREFIX = hex(DS18B20_1_WIRE_TYPE).replace("0x", "", 1)
@@ -59,7 +67,7 @@ class Thermometer(object):
         if not isinstance(value, str):
             raise TypeError("Serial must be a string")
         if not value.startswith(DS18B20_1_WIRE_TYPE_PREFIX + "-"):
-            raise ValueError("Only type " + DS18B20_1_WIRE_TYPE_PREFIX +
+            raise ValueError("Only type " + DS18B20_1_WIRE_TYPE_PREFIX + 
                              " 1-wire devices are supported.")
         self._serial = value
         return self._serial
@@ -74,7 +82,7 @@ class Thermometer(object):
     def bus_master_path(self, value):
         """Set the file system path to the 1-wire bus master"""
         if not os.access(value, os.F_OK):
-            raise ValueError("bus_master_path '" + value +
+            raise ValueError("bus_master_path '" + value + 
                              "' doesn't point to a directory")
         
         if not value.endswith("/"):
@@ -92,7 +100,7 @@ class Thermometer(object):
         Queries the 1-wire bus files.  Precision is to the 1000th of a
         degree but accuracy is only to +/-0.5 C.
         """
-        with open(self.bus_master_path + self.serial +
+        with open(self.bus_master_path + self.serial + 
                   TEMPERATURE_FILE_PATH) as temperature_file:
             crc_line = temperature_file.readline();
             temp_line = temperature_file.readline();
@@ -101,11 +109,11 @@ class Thermometer(object):
             crc = crc_line.split()[-1]
 
             if crc.split()[-0] == "NO":
-                raise TempReadingError("Bad reading from thermometer '" +
+                raise TempReadingError("Bad reading from thermometer '" + 
                                        self.serial + "'")
             
             temperature_data = temp_line.split()[-1]
-            return (Decimal(temperature_data[2:]) /
+            return (Decimal(temperature_data[2:]) / 
                 Decimal(1000))
     
     # Temperature in Fahrenheit property
@@ -116,7 +124,7 @@ class Thermometer(object):
         Queries the 1-wire bus files.  Precision is to the 1000th of a degree
         but accuracy is only to +/-0.5 C.
         """
-        return ((self.temp_c * Decimal(9) / Decimal(5)) +
+        return ((self.temp_c * Decimal(9) / Decimal(5)) + 
                 Decimal(32)).quantize(Decimal('1.000'))
 
 class TempReadingError(Exception):
@@ -251,7 +259,7 @@ class SQLThermoLogger(ThermoLogger):
                           thermo.temp_c))
     
     def _log_temp_controller_without_chain(self, thermo):
-        #TODO: Write SQL logging code
+        # TODO: Write SQL logging code
         return
  
     def initDatabase(self):
@@ -279,12 +287,81 @@ def get_thermometers(bus_master_path):
                 
     return thermometers
 
+class ControlledDevice(object):
+    States = enum("OFF", "ON")
+
+    def __init__(self):
+        self._state = self.States.OFF
+    
+    @property
+    def state(self):
+        return self._state
+    
+    def turn_on(self):
+        """Turn on the controlled device.  Subclasses must implement this
+        method
+        """
+        raise TypeError('Abstract method `' + self._class.__name__ \
+                            + '.' + self._function + '\' called')
+    
+    def turn_off(self):
+        """Turn off the controlled device.  Subclasses must implement this
+        method
+        """
+        raise TypeError('Abstract method `' + self._class.__name__ \
+                            + '.' + self._function + '\' called')
+
+class MockDevice(ControlledDevice):
+    MOCK_FILE_NAME = os.path.join(cwd, "mock_device")
+    
+    def __init__(self):
+        super(MockDevice, self).__init__()
+        self._mock_file = open(self.MOCK_FILE_NAME, "a")
+    
+    @property
+    def mock_file(self):
+        return self._mock_file
+    
+    @mock_file.setter
+    def mock_file(self, new_mock_file):
+        self._mock_file = new_mock_file
+        return self._mock_file
+    
+    def turn_on(self):
+        self.mock_file.truncate(0)
+        self.mock_file.seek(0)
+        self.mock_file.write("1")
+        return
+    
+    def turn_off(self): 
+        self.mock_file.truncate(0)
+        self.mock_file.seek(0)
+        self.mock_file.write("0")
+        return
+    
+class PiDevice(ControlledDevice):
+    PIN = 12
+    
+    def __init__(self):
+        super(PiDevice, self).__init__()
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(12, GPIO.OUT)
+    
+    def turn_on(self):
+        GPIO.output(12, True)
+        return
+    
+    def turn_off(self): 
+        GPIO.output(12, False)
+        return
+
 class TempController(object):
     States = enum("OFF", "COOLING")
     
-    def __init__(self, thermometer, max_temp_f):
+    def __init__(self, device, thermometer, max_temp_f):
         """Create a temperature controller"""
         
+        self._device = device
         self._thermometer = thermometer
         self._max_temp_f = max_temp_f
         self._state = self.States.OFF
@@ -292,6 +369,11 @@ class TempController(object):
     # Property holding the thermometer for this temp controller
     @property
     def thermometer(self):
+        return self._thermometer
+    
+    @thermometer.setter
+    def thermometer(self, new_thermometer):
+        self._thermometer = new_thermometer
         return self._thermometer
 
     # Property holding the maximum temperature in degrees Fahrenheit.
@@ -309,69 +391,27 @@ class TempController(object):
         self._state = new_state
         return self._state
     
+    # Property holding the controlled device
+    @property
+    def device(self):
+        return self._device
+    
     def process(self):
         if (self.thermometer.temp_f > self.max_temp_f):
             self.state = self.States.COOLING
+            self.device.turn_on()
         else:
             self.state = self.States.OFF
+            self.device.turn_off()
         return
 
-class ThermoDevice(object):
-    States = enum("OFF", "ON")
+class TempControllerFactory(object):
+    if (IS_RASPBERRY_PI):
+        device = MockDevice()
+    else:
+        device = PiDevice()
+    
+    @classmethod
+    def simpleCoolingController(cls, bus_path, max_temp_f):
+        return TempController(cls.device, get_thermometers(bus_path)[-1], max_temp_f)
 
-    def __init__(self):
-        self._state = self.States.OFF
-    
-    @property
-    def state(self):
-        return self._state
-    
-    def turn_on(self):
-        """Log the data from the Thermometer for the current class without
-        calling down the logging chain.  Subclasses must implement this method
-        """
-        raise TypeError('Abstract method `' + self._class.__name__ \
-                            + '.' + self._function + '\' called')
-    
-    def turn_off(self):
-        """Log the data from the Thermometer for the current class without
-        calling down the logging chain.  Subclasses must implement this method
-        """
-        raise TypeError('Abstract method `' + self._class.__name__ \
-                            + '.' + self._function + '\' called')
-
-class CoolingThermoDevice(ThermoDevice):
-    def __init__(self):
-        super(CoolingThermoDevice, self).__init__()
-
-class DeviceInterface(object):
-    States = enum("OFF", "ON")
-    
-    def __init__(self):
-        return
-    
-    def turn_on(self):
-        """Log the data from the Thermometer for the current class without
-        calling down the logging chain.  Subclasses must implement this method
-        """
-        raise TypeError('Abstract method `' + self._class.__name__ \
-                            + '.' + self._function + '\' called')
-    
-    def turn_off(self):
-        """Log the data from the Thermometer for the current class without
-        calling down the logging chain.  Subclasses must implement this method
-        """
-        raise TypeError('Abstract method `' + self._class.__name__ \
-                            + '.' + self._function + '\' called')
-    
-class MockDeviceInterface(object):
-    MOCK_FILE_NAME = "mock_device"
-    
-    def __init__(self):
-        super(MockDeviceInterface, self).__init__()
-    
-    def turn_on(self):
-        return
-    
-    def turn_off(self): 
-        return   
