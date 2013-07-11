@@ -149,33 +149,33 @@ def test_logger_chained_log():
     
 def test_temp_controller_max_temp_f():
     temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
-        SINGLE_THERMO_BUS_PATH, Decimal("11.0"))
+        SINGLE_THERMO_BUS_PATH, Decimal("11.0"), Decimal("1"))
     
     assert temp_controller.max_temp_f == Decimal("11.0")
 
 def test_temp_controller_initial_state():
     temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
-        SINGLE_THERMO_BUS_PATH, Decimal("11.0"))
+        SINGLE_THERMO_BUS_PATH, Decimal("11.0"), Decimal("1"))
     
     assert temp_controller.state == fermbot.thermo.TempController.States.OFF
     
 def test_temp_controller_cooling():
     temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
-        SINGLE_THERMO_BUS_PATH, Decimal("65.0"))
+        SINGLE_THERMO_BUS_PATH, Decimal("65.0"), Decimal("1"))
     temp_controller.process()
     
     assert temp_controller.state == fermbot.thermo.TempController.States.COOLING
     
 def test_temp_controller_not_cooling():
     temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
-        SINGLE_THERMO_BUS_PATH, Decimal("70.0"))
+        SINGLE_THERMO_BUS_PATH, Decimal("70.0"), Decimal("1"))
     temp_controller.process()
     
     assert temp_controller.state == fermbot.thermo.TempController.States.OFF
     
 def test_temp_controller_cooling_file_log():
     temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
-        SINGLE_THERMO_BUS_PATH, Decimal("65.0"))
+        SINGLE_THERMO_BUS_PATH, Decimal("65.0"), Decimal("1"))
     temp_controller.process()
     thermo_logger = fermbot.thermo.FileThermoLogger(LOGGING_APP_NAME)
     thermo_logger.log_temp_controller(temp_controller)
@@ -191,7 +191,7 @@ def test_temp_controller_cooling_file_log():
 def test_temp_controller_not_cooling_file_log():
     thermometers = fermbot.thermo.get_thermometers(SINGLE_THERMO_BUS_PATH);
     temp_controller = fermbot.thermo.TempControllerFactory.simpleCoolingController(
-        SINGLE_THERMO_BUS_PATH, Decimal("70.0"))
+        SINGLE_THERMO_BUS_PATH, Decimal("70.0"), Decimal("1"))
     temp_controller.process()
     thermo_logger = fermbot.thermo.FileThermoLogger(LOGGING_APP_NAME)
     thermo_logger.log_temp_controller(temp_controller)

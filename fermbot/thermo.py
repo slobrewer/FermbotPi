@@ -14,6 +14,8 @@ if (platform.machine() == "armv6l" and platform.system() == "Linux"):
 if (IS_RASPBERRY_PI):
     try:
         import RPi.GPIO as GPIO
+        GPIO.setmode(GPIO.BOARD)
+
     except RuntimeError:
         print("Error importing RPi.GPIO!  This is probably because you need " + 
               "superuser privileges.  You can achieve this by using 'sudo' " + 
@@ -316,27 +318,33 @@ class MockDevice(ControlledDevice):
     
     def __init__(self):
         super(MockDevice, self).__init__()
-        self._mock_file = open(self.MOCK_FILE_NAME, "a")
-    
-    @property
-    def mock_file(self):
-        return self._mock_file
-    
-    @mock_file.setter
-    def mock_file(self, new_mock_file):
-        self._mock_file = new_mock_file
-        return self._mock_file
+        
+        # Get the current state from the mock file but create the file
+        # first if it doesn't already exist
+        if os.path.getsize(self.MOCK_FILE_NAME):
+            with open(self.MOCK_FILE_NAME, "a") as f:
+                f.write("0")
+        with open(self.MOCK_FILE_NAME, "r") as f:
+            f.seek(0, 0)
+            if f.read(1) == 1:
+                self._state = self.States.ON
+            else:
+                self._state = self.States.OFF
     
     def turn_on(self):
-        self.mock_file.truncate(0)
-        self.mock_file.seek(0)
-        self.mock_file.write("1")
+        self._state = self.States.ON
+        with open(self.MOCK_FILE_NAME, "w") as f:
+            f.truncate(0)
+            f.seek(0)
+            f.write("1")
         return
     
     def turn_off(self): 
-        self.mock_file.truncate(0)
-        self.mock_file.seek(0)
-        self.mock_file.write("0")
+        self._state = self.States.OFF
+        with open(self.MOCK_FILE_NAME, "w") as f:
+            f.truncate(0)
+            f.seek(0)
+            f.write("0")
         return
     
 class PiDevice(ControlledDevice):
@@ -344,26 +352,33 @@ class PiDevice(ControlledDevice):
     
     def __init__(self):
         super(PiDevice, self).__init__()
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(12, GPIO.OUT)
+        GPIO.setup(self.PIN, GPIO.OUT)
+        
+        if (GPIO.input(self.PIN) == 1):
+            self._state = self.States.ON
+        else:
+            self._state = self.States.OFF
     
     def turn_on(self):
-        GPIO.output(12, True)
+        self._state = self.States.ON
+        GPIO.output(self.PIN, True)
         return
     
-    def turn_off(self): 
-        GPIO.output(12, False)
+    def turn_off(self):
+        self._state = self.States.OFF
+        GPIO.output(self.PIN, False)
         return
 
 class TempController(object):
     States = enum("OFF", "COOLING")
     
-    def __init__(self, device, thermometer, max_temp_f):
+    def __init__(self, device, thermometer, max_temp_f, temp_band_f):
         """Create a temperature controller"""
         
         self._device = device
         self._thermometer = thermometer
         self._max_temp_f = max_temp_f
+        self._temp_band_f = temp_band_f
         self._state = self.States.OFF
 
     # Property holding the thermometer for this temp controller
@@ -380,6 +395,11 @@ class TempController(object):
     @property
     def max_temp_f(self):
         return self._max_temp_f
+    
+    # Property holding the temperature band for hysteresis
+    @property
+    def temp_band_f(self):
+        return self._temp_band_f
     
     # Property holding the current temperature control state
     @property
@@ -400,6 +420,9 @@ class TempController(object):
         if (self.thermometer.temp_f > self.max_temp_f):
             self.state = self.States.COOLING
             self.device.turn_on()
+        elif (self.device.state == ControlledDevice.States.ON and
+              self.thermometer.temp_f > self.max_temp_f - self.temp_band_f):
+            self.state = self.States.COOLING
         else:
             self.state = self.States.OFF
             self.device.turn_off()
@@ -412,6 +435,7 @@ class TempControllerFactory(object):
         device = MockDevice()
     
     @classmethod
-    def simpleCoolingController(cls, bus_path, max_temp_f):
-        return TempController(cls.device, get_thermometers(bus_path)[-1], max_temp_f)
+    def simpleCoolingController(cls, bus_path, max_temp_f, temp_band_f):
+        return TempController(cls.device, get_thermometers(bus_path)[-1],
+                              max_temp_f, temp_band_f)
 
